@@ -1,0 +1,326 @@
+DOCKER
+docker search gifify
+docker search -s10 nginx
+
+docker pull nginx
+docker run -p 8080:80 -d nginx
+
+docker ps // läuft bei mir was
+docker ps -a //alle container, die schon gelaufen sind
+docker ps -l //letzter erstellter container oder -n=1 -s
+docker ps -a -f status=running
+docker ps -aq //nur container id
+docker rm $(docker ps -aq) // alle werden entfernt
+docker container ls //alle container
+
+docker stop „image id“
+docker rm „docker container id“ //laufende Container löschen
+docker image rm „image id“ // image entfernen
+docker image rm -f „image ID“ // image löschen
+docker images // images auf meinem rechner
+
+
+SÄUBERN
+
+docker rm -f $(docker ps -a -q) //container löschen
+docker ps -aq
+docker images -a
+docker rmi image_id
+docker rmi $(docker images -aq) //image löschen
+
+docker system prune -a//alles drumherum löschen
+
+
+
+
+DOCKER RUN
+
+docker run -v $(pwd):/data maxogden/gifify Flyboard.mov -o output.gif 
+
+docker run -it mein_docker // interaktive shell
+docker run -d -p 8080:80
+
+docker run --name mein_name alpine
+
+docker run --name mein_name alpine --rm alpine // sobald der container ausgeführt wurde, wird er removed 
+
+docker run -d --name nginx -p 8080:80 nginx // wird im Hintergrund ausgeführt -d detache
+docker run -it ubuntu /bin/bash //interaktiv arbeiten mit dem container
+exit
+
+echo test | docker run -i busybox cat 
+
+
+
+docker run -it -m 300M --memory-swap -1 ubuntu /bin/bash // memory limitieren
+docker run -it --cpuset-cpus= "0" ubuntu /bin/bash
+
+docker run -it --entrypoint /bin/bash redis   // entrypoint vom container wird überschrieben
+docker run -it -p 8080:80 --entrypoint /bin/bash -w="/home" nginx // working directory ist home
+
+docker run -it -v quell_vz:ziel_vz_im_container ubuntu bash 
+docker run -it -v `pwd`:/data ubuntu bash 
+ //Arbeitsverzeichnis in den container geben, heisst volume
+
+docker run -it --mount type=bind, src=`pwd`,target=/data,readonly ubuntu bash //besser mount anstatt volume verwenden, ist expliziter
+
+Umgebungsvariablen
+docker run -e VAR1 --env VAR2=petra -it ubuntu bash
+docker run -e VAR1=wert1 --env VAR2=petra -it ubuntu env | grep VAR
+exit
+
+docker logs name_container
+
+
+~ docker create --name pyspark -p 8888:8888 jupyter/pyspark-notebook  // container createn
+ docker cp Downloads/ pyspark:/home/jovyan/work //etwas von Downloads in pyspark kopieren
+ docker start -a pyspark //starten
+
+
+-----
+
+
+
+
+DOCKERFILE
+docker build .
+docker build -t mein_docker:latest .
+
+Starten des Containers
+Run nur wenn Docker Image erstellt wird, alle Layer
+
+command
+CMD während Docker-Image starten, wir nur beim Ausführen
+ des Containers gemacht, bei mehr CMD wird nur 
+ die letzte ausgeführt 
+
+ entrypoint 
+ wird immer beim start ausgeführt 
+
+____
+
+CONTAINER NOEJS erstellen
+
+docker run -d --name mein_nodejs -v "$PWD":/usr/app -e "NODE_ENV=production" -w /usr/src/app node:8 node hallo.js //mit pwd aktuelle verzeichnis in den container, mit node hallo.js wird der server gestartet
+
+docker images
+docker image remove ...
+docker container rm -f ...
+docker containers ls -a
+docker container stop ...
+docker search mysql
+docker run -d -p 5001:5000 in28min/hello-world-python:0.0.1.RELEASE 
+docker container pause
+docker container unpause
+docker container stop ..
+docker container kill // sofort applikation killen
+docker logs -f ...
+docker container inspect
+docker container prune // alle gestoppten container werden removed -a
+docker system d
+docker stats ...
+docker history ...
+
+
+docker build -t petkohl/hello-world-python:0.0.2.RELEASE .
+docker run siehe oben
+
+docker hub
+
+docker push petkohl/hello-world-python:0.0.2.RELEASE
+
+CMD kann von einem comandline Argument überschrieben werden, Entrypoint nicht
+
+docker run -p 8000:8000 --name=currency-exchange petkohl/currency-exchange:0.0.1-RELEASE
+
+ docker run -d -p 8100:8100 --name=currency-conversion petkohl/02-currency-conversion-microservice-basic:0.0.1.RELEASE
+
+docker network ls
+docker network inspect bridge
+
+link zwei microservices
+docker run -d -p 8100:8100  --env CURRENCY_EXCHANGE_SERVICE_HOST=http://currency-exchange --name=currency-conversion --link currency-exchange petkohl/02-currency-conversion-microservice-basic:0.0.1.RELEASE
+
+
+
+docker network create currency-network
+/// wenn man im gleichen network ist, muss man nicht verlinken
+
+docker run -d -p 8000:8000 --name=currency-exchange --network=currency-network  petkohl/01-currency-exchange-microservice-basic:0.0.1.RELEASE
+docker run -d -p 8100:8100  --env CURRENCY_EXCHANGE_SERVICE_HOST=http://currency-exchange --name=currency-conversion --network=currency-network  petkohl/02-currency-conversion-microservice-basic:0.0.1.RELEASE
+
+
+// vernetzen von containern geht leichtet mit compose siehe microservices ordner
+docker compose up
+docker compose up -d
+docker compose down
+
+docker-compose events
+docker-compose config
+docker-compose images
+
+KUBERNETES
+
+
+ 
+kubectl create deployment hello-world-rest-api --image=in28min/hello-world-rest-api:0.0.1.RELEASE
+kubectl expose deployment hello-world-rest-api --type=LoadBalancer --port=8080
+kubectl scale deployment hello-world-rest-api --replicas=3
+kubectl delete pod hello-world-rest-api-58ff5dd898-62l9d
+kubectl autoscale deployment hello-world-rest-api --max=10 --cpu-percent=70
+kubectl edit deployment hello-world-rest-api #minReadySeconds: 15
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.2.RELEASE
+ 
+gcloud container clusters get-credentials in28minutes-cluster --zone us-central1-a --project solid-course-258105
+kubectl create deployment hello-world-rest-api --image=in28min/hello-world-rest-api:0.0.1.RELEASE
+kubectl expose deployment hello-world-rest-api --type=LoadBalancer --port=8080
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=DUMMY_IMAGE:TEST
+kubectl get events --sort-by=.metadata.creationTimestamp
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.2.RELEASE
+kubectl get events --sort-by=.metadata.creationTimestamp
+kubectl get componentstatuses
+kubectl get pods --all-namespaces
+ 
+kubectl get events
+kubectl get pods
+kubectl get replicaset
+kubectl get deployment
+kubectl get service
+ 
+kubectl get pods -o wide
+ 
+kubectl explain pods
+kubectl get pods -o wide
+ 
+kubectl describe pod hello-world-rest-api-58ff5dd898-9trh2
+ 
+kubectl get replicasets
+kubectl get replicaset
+ 
+kubectl scale deployment hello-world-rest-api --replicas=3
+kubectl get pods
+kubectl get replicaset
+kubectl get events
+kubectl get events --sort.by=.metadata.creationTimestamp
+ 
+kubectl get rs
+kubectl get rs -o wide
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=DUMMY_IMAGE:TEST
+kubectl get rs -o wide
+kubectl get pods
+kubectl describe pod hello-world-rest-api-85995ddd5c-msjsm
+kubectl get events --sort-by=.metadata.creationTimestamp
+ 
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.2.RELEASE
+kubectl get events --sort-by=.metadata.creationTimestamp
+kubectl get pods -o wide
+kubectl delete pod hello-world-rest-api-67c79fd44f-n6c7l
+kubectl get pods -o wide
+kubectl delete pod hello-world-rest-api-67c79fd44f-8bhdt
+ 
+kubectl get componentstatuses
+kubectl get pods --all-namespaces
+ 
+gcloud auth login
+kubectl version
+gcloud container clusters get-credentials in28minutes-cluster --zone us-central1-a --project solid-course-258105
+ 
+kubectl rollout history deployment hello-world-rest-api
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.3.RELEASE --record=true
+kubectl rollout undo deployment hello-world-rest-api --to-revision=1
+ 
+kubectl logs hello-world-rest-api-58ff5dd898-6ctr2
+kubectl logs -f hello-world-rest-api-58ff5dd898-6ctr2
+ 
+kubectl get deployment hello-world-rest-api -o yaml
+kubectl get deployment hello-world-rest-api -o yaml > deployment.yaml
+kubectl get service hello-world-rest-api -o yaml > service.yaml
+kubectl apply -f deployment.yaml
+kubectl get all -o wide
+kubectl delete all -l app=hello-world-rest-api
+ 
+kubectl get svc --watch
+kubectl diff -f deployment.yaml
+kubectl delete deployment hello-world-rest-api
+kubectl get all -o wide
+kubectl delete replicaset.apps/hello-world-rest-api-797dd4b5dc
+ 
+kubectl get pods --all-namespaces
+kubectl get pods --all-namespaces -l app=hello-world-rest-api
+kubectl get services --all-namespaces
+kubectl get services --all-namespaces --sort-by=.spec.type
+kubectl get services --all-namespaces --sort-by=.metadata.name
+kubectl cluster-info
+kubectl cluster-info dump
+kubectl top node
+kubectl top pod
+kubectl get services
+kubectl get svc
+kubectl get ev
+kubectl get rs
+kubectl get ns
+kubectl get nodes
+kubectl get no
+kubectl get pods
+kubectl get po
+ 
+kubectl delete all -l app=hello-world-rest-api
+kubectl get all
+ 
+kubectl apply -f deployment.yaml 
+kubectl apply -f ../currency-conversion/deployment.yaml 
+
+in der console
+
+gcloud auth login
+
+gcloud container clusters get-credentials petkohl-cluster --zone us-central1-c --project rugged-precept-322406
+kubectl rollout history deployment hello-world-rest-api
+kubectl set image undeployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-api:0.0.3.RELEASE --record=true
+kubectl rollout undo deployment hello-world-rest-api --to-revision=1
+kubectl get deployment hello-world-rest-api -o yaml
+kubectl get deployment hello-world-rest-api -o yaml > deployment.yaml
+
+
+kubectl apply -f deployment.yaml
+kubectl get pods
+kubectl delete all -l app=hello-world-rest-api
+kubectl get pods --all-namespaces
+
+terraform
+
+brew install terraform
+terraform --version
+terraform version
+terraform init
+export AWS_ACCESS_KEY_ID=*******
+export AWS_SECRET_ACCESS_KEY=*********
+terraform plan
+terraform console
+terraform apply -refresh=false
+terraform plan -out iam.tfplan
+terraform apply "iam.tfplan"
+terraform apply -target=aws_iam_user.my_iam_user
+terraform destroy
+terraform validate
+terraform fmt
+terraform show
+export TF_VAR_iam_user_name_prefix = FROM_ENV_VARIABLE_IAM_PREFIX
+export TF_VAR_iam_user_name_prefix=FROM_ENV_VARIABLE_IAM_PREFIX
+terraform plan -refresh=false -var="iam_user_name_prefix=VALUE_FROM_COMMAND_LINE"
+terraform apply -target=aws_default_vpc.default
+terraform apply -target=data.aws_subnet_ids.default_subnets
+terraform apply -target=data.aws_ami_ids.aws_linux_2_latest_ids
+terraform apply -target=data.aws_ami.aws_linux_2_latest
+terraform workspace show
+terraform workspace new prod-env
+terraform workspace select default
+terraform workspace list
+terraform workspace select prod-env
+
+
+
+
+
+
+
